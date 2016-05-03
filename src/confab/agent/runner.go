@@ -204,3 +204,12 @@ func (r *Runner) Cleanup() error {
 
 	return nil
 }
+
+func (r *Runner) WaitForExit() error {
+	proc, err := r.getProcess()
+	if err != nil {
+		return err
+	}
+	_, err = proc.Wait()
+	return err
+}
