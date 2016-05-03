@@ -40,8 +40,7 @@ func isRunningProcess(pidFilePath string) bool {
 	if err != nil {
 		return false
 	}
-	err = proc.Signal(syscall.Signal(0))
-	return err == nil
+	return signalProcess(proc) == nil
 }
 
 func (r *Runner) Run() error {
