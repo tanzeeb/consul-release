@@ -1,0 +1,6 @@
+check process sidecar
+  with pidfile /var/vcap/sys/run/sidecar/sidecar.pid
+  start program "/var/vcap/jobs/sidecar/bin/sidecar_ctl start"
+    as uid vcap and gid vcap with timeout 60 seconds
+  stop program "/var/vcap/jobs/sidecar/bin/sidecar_ctl stop"
+  group vcap

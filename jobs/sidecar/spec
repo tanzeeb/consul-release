@@ -1,0 +1,10 @@
+---
+name: sidecar
+templates:
+  sidecar_ctl.sh.erb: bin/sidecar_ctl
+  pre-start.erb: bin/pre-start
+
+packages:
+  - sidecar
+
+properties: {}

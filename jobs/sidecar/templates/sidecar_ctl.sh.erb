@@ -1,0 +1,34 @@
+#!/bin/bash -exu
+
+PID_FILE="/var/vcap/sys/run/sidecar/sidecar.pid"
+RUN_DIR="/var/vcap/sys/run/sidecar"
+LOG_DIR="/var/vcap/sys/log/sidecar"
+PKG_DIR="/var/vcap/packages/sidecar"
+
+function main() {
+  mkdir -p ${RUN_DIR}
+
+  case "${1}" in
+	"start")
+		"${PKG_DIR}/bin/sidecar" --port 6700 --consul-url http://127.0.0.1:8500 \
+			2> >(tee -a ${LOG_DIR}/sidecar.stderr.log | logger -p user.error -t vcap.sidecar) \
+			1> >(tee -a ${LOG_DIR}/sidecar.stdout.log | logger -p user.info  -t vcap.sidecar) &
+		echo "${!}" > "${PID_FILE}"
+	  ;;
+
+	"stop")
+		  local pid
+		  pid="$(cat "${PID_FILE}")"
+
+		  kill -9 "${pid}"
+		  rm "${PID_FILE}"
+	  ;;
+
+	*)
+	  echo "Usage: $0 {start|stop}"
+	  ;;
+
+  esac
+}
+
+main ${@}

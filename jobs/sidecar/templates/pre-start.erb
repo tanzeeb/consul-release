@@ -1,0 +1,10 @@
+#!/bin/bash -exu
+
+LOG_DIR="/var/vcap/sys/log/sidecar"
+
+function main() {
+  mkdir -p "${LOG_DIR}"
+  chown -R vcap:vcap "${LOG_DIR}"
+}
+
+main

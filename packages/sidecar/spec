@@ -1,0 +1,8 @@
+---
+name: sidecar
+
+dependencies:
+  - golang1.6
+
+files:
+ - sidecar/**/*
