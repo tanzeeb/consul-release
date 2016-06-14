@@ -86,10 +86,10 @@ var _ = Describe("services", func() {
 	})
 
 	It("scrapes the consul agent for service definitions", func() {
-		request, err := http.NewRequest("GET", "/services", nil)
+		request, err := http.NewRequest("GET", "/services?members=false", nil)
 		Expect(err).NotTo(HaveOccurred())
 
-		handler := handlers.NewServicesHandler(consulServer.URL, "")
+		handler := handlers.NewServicesHandler(consulServer.URL, sidecarMemberServer.URL)
 		recorder := httptest.NewRecorder()
 		handler.ServeHTTP(recorder, request)
 
@@ -106,7 +106,7 @@ var _ = Describe("services", func() {
 	})
 
 	It("appends member services to the returned service definitions", func() {
-		request, err := http.NewRequest("GET", "/services", nil)
+		request, err := http.NewRequest("GET", "/services?members=true", nil)
 		Expect(err).NotTo(HaveOccurred())
 
 		handler := handlers.NewServicesHandler(consulServer.URL, sidecarMemberServer.URL)

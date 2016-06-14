@@ -101,7 +101,8 @@ func (s ServicesHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		handlerResponses[0].Services = append(handlerResponses[0].Services, service)
 	}
 
-	if s.memberURL != "" {
+	members := req.URL.Query().Get("members")
+	if s.memberURL != "" && members == "true" {
 		memberResp, err := http.Get(fmt.Sprintf("%s/services", s.memberURL))
 		if err != nil {
 			panic(err)

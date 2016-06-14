@@ -87,7 +87,7 @@ var _ = Describe("sidecar", func() {
 		})
 
 		It("returns services which have been scraped from consul", func() {
-			status, responseBodyString, err := makeRequest("GET", fmt.Sprintf("http://localhost:%s/services", port), "")
+			status, responseBodyString, err := makeRequest("GET", fmt.Sprintf("http://localhost:%s/services?members=true", port), "")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(Equal(http.StatusOK))
 			Expect(responseBodyString).To(MatchJSON(`[

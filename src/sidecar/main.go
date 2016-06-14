@@ -16,6 +16,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/services", func(w http.ResponseWriter, req *http.Request) {
+		log.Printf("%+v\n", req)
 		serviceHandler.ServeHTTP(w, req)
 	})
 

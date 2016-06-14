@@ -10,7 +10,7 @@ function main() {
 
   case "${1}" in
 	"start")
-		"${PKG_DIR}/bin/sidecar" --port 6700 --consul-url http://127.0.0.1:8500 \
+		"${PKG_DIR}/bin/sidecar" --port 6700 --consul-url http://127.0.0.1:8500 --member <%= p("sidecar.member") %> \
 			2> >(tee -a ${LOG_DIR}/sidecar.stderr.log | logger -p user.error -t vcap.sidecar) \
 			1> >(tee -a ${LOG_DIR}/sidecar.stdout.log | logger -p user.info  -t vcap.sidecar) &
 		echo "${!}" > "${PID_FILE}"
