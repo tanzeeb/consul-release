@@ -18,22 +18,63 @@ import (
 
 var _ = Describe("sidecar", func() {
 	var (
-		session      *gexec.Session
-		port         string
-		consulServer *httptest.Server
+		session            *gexec.Session
+		port               string
+		consulServer       *httptest.Server
+		otherSidecarServer *httptest.Server
 	)
 
 	Context("services", func() {
 		BeforeEach(func() {
 			consulServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-				w.Write([]byte("{}"))
+				switch req.URL.Path {
+				case "/v1/agent/self":
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`{
+						"Config": {
+							"Datacenter": "dc1"
+						}
+					}`))
+					return
+				case "/v1/catalog/services":
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`{
+						"consul":[],
+						"my-dc1-service": ["node-1"],
+						"my-other-dc1-service": ["node-1"]
+					}`))
+					return
+				case "/v1/catalog/node/node-1":
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte(`{
+						"Node": {
+							"Address": "10.0.0.2"
+						}
+					}`))
+					return
+				}
+
+				w.WriteHeader(http.StatusTeapot)
+			}))
+
+			otherSidecarServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+				w.Write([]byte(`[
+					{
+						"datacenter": "dc2",
+						"services": [
+							{"service": "my-dc2-service","addresses": ["10.0.1.1","10.0.1.2","10.0.1.3"]},
+							{"service": "my-other-dc2-service","addresses": ["10.0.1.1","10.0.1.3"]}
+						]
+					}
+				]`))
 			}))
 
 			var err error
 			port, err = openPort()
 			Expect(err).NotTo(HaveOccurred())
 
-			command := exec.Command(pathToSidecar, "--port", port, "--consul-url", consulServer.URL)
+			command := exec.Command(pathToSidecar, "--port", port, "--consul-url", consulServer.URL,
+				"--member", otherSidecarServer.URL)
 
 			session, err = gexec.Start(command, GinkgoWriter, GinkgoWriter)
 			Expect(err).NotTo(HaveOccurred())
@@ -46,9 +87,25 @@ var _ = Describe("sidecar", func() {
 		})
 
 		It("returns services which have been scraped from consul", func() {
-			status, _, err := makeRequest("GET", fmt.Sprintf("http://localhost:%s/services", port), "")
+			status, responseBodyString, err := makeRequest("GET", fmt.Sprintf("http://localhost:%s/services", port), "")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status).To(Equal(http.StatusOK))
+			Expect(responseBodyString).To(MatchJSON(`[
+				{
+					"datacenter": "dc1",
+					"services": [
+						{"service": "my-dc1-service","addresses": ["10.0.0.2"]},
+						{"service": "my-other-dc1-service","addresses": ["10.0.0.2"]}
+					]
+				},
+				{
+					"datacenter": "dc2",
+					"services": [
+						{"service": "my-dc2-service","addresses": ["10.0.1.1","10.0.1.2","10.0.1.3"]},
+						{"service": "my-other-dc2-service","addresses": ["10.0.1.1","10.0.1.3"]}
+					]
+				}
+			]`))
 		})
 	})
 })

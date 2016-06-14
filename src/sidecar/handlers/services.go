@@ -8,6 +8,12 @@ import (
 
 type ServicesHandler struct {
 	consulURL string
+	memberURL string
+}
+
+type handlerResponse struct {
+	Datacenter string    `json:"datacenter"`
+	Services   []service `json:"services"`
 }
 
 type service struct {
@@ -15,13 +21,10 @@ type service struct {
 	Addresses []string `json:"addresses"`
 }
 
-type services struct {
-	Services []service `json:"services"`
-}
-
-func NewServicesHandler(consulURL string) ServicesHandler {
+func NewServicesHandler(consulURL string, memberURL string) ServicesHandler {
 	return ServicesHandler{
 		consulURL: consulURL,
+		memberURL: memberURL,
 	}
 }
 
@@ -33,8 +36,27 @@ type node struct {
 	Address string
 }
 
+type selfResponse struct {
+	Config config
+}
+
+type config struct {
+	Datacenter string
+}
+
 func (s ServicesHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	response, err := http.Get(fmt.Sprintf("%s/v1/catalog/services", s.consulURL))
+	response, err := http.Get(fmt.Sprintf("%s/v1/agent/self", s.consulURL))
+	if err != nil {
+		panic(err)
+	}
+
+	var selfResp selfResponse
+	err = json.NewDecoder(response.Body).Decode(&selfResp)
+	if err != nil {
+		panic(err)
+	}
+
+	response, err = http.Get(fmt.Sprintf("%s/v1/catalog/services", s.consulURL))
 	if err != nil {
 		panic(err)
 	}
@@ -45,8 +67,11 @@ func (s ServicesHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		panic(err)
 	}
 
-	services := services{
-		Services: []service{},
+	handlerResponses := []handlerResponse{
+		{
+			Datacenter: selfResp.Config.Datacenter,
+			Services:   []service{},
+		},
 	}
 
 	for serviceName, serviceNodes := range catalogServicesResp {
@@ -73,10 +98,25 @@ func (s ServicesHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			service.Addresses = append(service.Addresses, nodeResp.Node.Address)
 		}
 
-		services.Services = append(services.Services, service)
+		handlerResponses[0].Services = append(handlerResponses[0].Services, service)
 	}
 
-	buf, err := json.Marshal(&services)
+	if s.memberURL != "" {
+		memberResp, err := http.Get(fmt.Sprintf("%s/services", s.memberURL))
+		if err != nil {
+			panic(err)
+		}
+
+		var memberResponse []handlerResponse
+		err = json.NewDecoder(memberResp.Body).Decode(&memberResponse)
+		if err != nil {
+			panic(err)
+		}
+
+		handlerResponses = append(handlerResponses, memberResponse[0])
+	}
+
+	buf, err := json.Marshal(&handlerResponses)
 	if err != nil {
 		panic(err)
 	}

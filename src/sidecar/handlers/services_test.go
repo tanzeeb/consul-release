@@ -26,32 +26,17 @@ func buildJSONForNode(nodeName string) ([]byte, error) {
 		},
 	}
 
-	if nodeName == "node-2" {
-		payload["Services"] = map[string]interface{}{
-			"my-service": map[string]string{
-				"ID":      "my-service",
-				"Service": "my-service",
-			},
-		}
-	} else {
-		payload["Services"] = map[string]interface{}{
-			"my-service": map[string]string{
-				"ID":      "my-service",
-				"Service": "my-service",
-			},
-			"my-other-service": map[string]string{
-				"ID":      "my-other-service",
-				"Service": "my-other-service",
-			},
-		}
-	}
-
 	return json.Marshal(&payload)
 }
 
 var _ = Describe("services", func() {
-	It("scrapes the consul agent for service definitions", func() {
-		consulURL := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	var (
+		consulServer        *httptest.Server
+		sidecarMemberServer *httptest.Server
+	)
+
+	BeforeEach(func() {
+		consulServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			switch {
 			case req.URL.Path == "/v1/catalog/services":
 				w.WriteHeader(http.StatusOK)
@@ -69,23 +54,82 @@ var _ = Describe("services", func() {
 				w.WriteHeader(http.StatusOK)
 				w.Write(payload)
 				return
+			case req.URL.Path == "/v1/agent/self":
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`{
+					"Config": {
+						"Datacenter": "dc1"
+					}
+				}`))
+				return
 			}
 			w.WriteHeader(http.StatusTeapot)
 		}))
 
+		sidecarMemberServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			switch req.URL.Path {
+			case "/services":
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(`[
+					{
+						"datacenter": "dc2",
+						"services": [
+							{"service": "my-dc2-service","addresses": ["10.0.1.1","10.0.1.2","10.0.1.3"]},
+							{"service": "my-other-dc2-service","addresses": ["10.0.1.1","10.0.1.3"]}
+						]
+					}
+				]`))
+				return
+			}
+			w.WriteHeader(http.StatusTeapot)
+		}))
+	})
+
+	It("scrapes the consul agent for service definitions", func() {
 		request, err := http.NewRequest("GET", "/services", nil)
 		Expect(err).NotTo(HaveOccurred())
 
-		handler := handlers.NewServicesHandler(consulURL.URL)
+		handler := handlers.NewServicesHandler(consulServer.URL, "")
 		recorder := httptest.NewRecorder()
 		handler.ServeHTTP(recorder, request)
 
 		Expect(recorder.Code).To(Equal(http.StatusOK))
-		Expect(recorder.Body.Bytes()).To(MatchJSON(`{
-			"services": [
-				{"service": "my-service","addresses": ["10.0.0.1","10.0.0.2","10.0.0.3"]},
-				{"service": "my-other-service","addresses": ["10.0.0.1","10.0.0.3"]}
-			]
-		}`))
+		Expect(recorder.Body.Bytes()).To(MatchJSON(`[
+			{
+				"datacenter": "dc1",
+				"services": [
+					{"service": "my-service","addresses": ["10.0.0.1","10.0.0.2","10.0.0.3"]},
+					{"service": "my-other-service","addresses": ["10.0.0.1","10.0.0.3"]}
+				]
+			}
+		]`))
+	})
+
+	It("appends member services to the returned service definitions", func() {
+		request, err := http.NewRequest("GET", "/services", nil)
+		Expect(err).NotTo(HaveOccurred())
+
+		handler := handlers.NewServicesHandler(consulServer.URL, sidecarMemberServer.URL)
+
+		recorder := httptest.NewRecorder()
+		handler.ServeHTTP(recorder, request)
+
+		Expect(recorder.Code).To(Equal(http.StatusOK))
+		Expect(recorder.Body.Bytes()).To(MatchJSON(`[
+			{
+				"datacenter": "dc1",
+				"services": [
+					{"service": "my-service","addresses": ["10.0.0.1","10.0.0.2","10.0.0.3"]},
+					{"service": "my-other-service","addresses": ["10.0.0.1","10.0.0.3"]}
+				]
+			},
+			{
+				"datacenter": "dc2",
+				"services": [
+					{"service": "my-dc2-service","addresses": ["10.0.1.1","10.0.1.2","10.0.1.3"]},
+					{"service": "my-other-dc2-service","addresses": ["10.0.1.1","10.0.1.3"]}
+				]
+			}
+		]`))
 	})
 })
