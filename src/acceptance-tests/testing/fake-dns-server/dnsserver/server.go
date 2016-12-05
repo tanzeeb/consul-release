@@ -91,6 +91,7 @@ func (s Server) handleDNSRequest(responseWriter miekgdns.ResponseWriter, request
 		for i, resourceRecord := range resourceRecords {
 			responseMessage.Answer[i] = resourceRecord
 		}
+		responseMessage.MsgHdr.Truncated = true
 	} else {
 		log.Printf("No record found: %s\n", requestMessage.Question[0].Name)
 	}
