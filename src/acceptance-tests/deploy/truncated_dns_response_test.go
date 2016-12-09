@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = FDescribe("given large DNS response", func() {
+var _ = Describe("given large DNS response", func() {
 	var (
 		consulManifest     consul.ManifestV2
 		testConsumerClient testconsumerclient.Client
@@ -44,8 +44,17 @@ var _ = FDescribe("given large DNS response", func() {
 	})
 
 	It("does not error out", func() {
-		addresses, err := testConsumerClient.DNS("large-dns-response")
+		addresses, err := testConsumerClient.DNS("large-dns-response.fake.local")
 		Expect(err).NotTo(HaveOccurred())
-		fmt.Println(addresses)
+		Expect(addresses).To(Equal([]string{
+			"1.2.3.0", "1.2.3.0",
+			"1.2.3.1", "1.2.3.1",
+			"1.2.3.2", "1.2.3.2",
+			"1.2.3.3", "1.2.3.3",
+			"1.2.3.0", "1.2.3.0",
+			"1.2.3.1", "1.2.3.1",
+			"1.2.3.2", "1.2.3.2",
+			"1.2.3.3", "1.2.3.3",
+		}))
 	})
 })
