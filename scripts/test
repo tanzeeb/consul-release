@@ -4,7 +4,7 @@ export CONSUL_RELEASE_VERSION="99999+dev.$(date +%s)"
 export LATEST_CONSUL_RELEASE_VERSION="$(curl http://bosh.io/api/v1/releases/github.com/cloudfoundry-incubator/consul-release | jq -r .[0].version)"
 
 warden_cpi_version="29"
-turbulence_version="0.4"
+turbulence_version="0.5"
 
 function check_dependencies() {
   test -n "${CONSATS_CONFIG?"CONSATS_CONFIG is a required environment variable"}"
@@ -37,7 +37,7 @@ function main() {
 
   upload_releases "${scripts_dir}"
   force_compilation "${scripts_dir}"
-  bash -c "${scripts_dir}/../src/acceptance-tests/scripts/test -nodes ${PARALLEL_NODES} $@"
+  bash -c "${scripts_dir}/../src/acceptance-tests/scripts/test-turbulence -nodes ${PARALLEL_NODES} $@"
 }
 
 function parse_config() {

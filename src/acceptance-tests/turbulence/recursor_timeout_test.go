@@ -22,7 +22,7 @@ const (
 	TIMEOUT = 30 * time.Second
 )
 
-var _ = Describe("recursor timeout", func() {
+var _ = FDescribe("recursor timeout", func() {
 	var (
 		turbulenceClient   turbulenceclient.Client
 		turbulenceManifest turbulence.Manifest
@@ -46,7 +46,7 @@ var _ = Describe("recursor timeout", func() {
 
 		By("deploying consul", func() {
 			var err error
-			config.TurbulenceHost = turbulenceManifest.InstanceGroups[0].Networks[0].StaticIPs[0]
+			config.TurbulenceDeploymentName = turbulenceManifest.Name
 
 			consulManifest, _, err = helpers.DeployConsulWithTurbulence("recursor-timeout", 1, boshClient, config)
 			Expect(err).NotTo(HaveOccurred())
@@ -90,10 +90,10 @@ var _ = Describe("recursor timeout", func() {
 			}
 		})
 
-		By("deleting turbulence", func() {
-			err := boshClient.DeleteDeployment(turbulenceManifest.Name)
-			Expect(err).NotTo(HaveOccurred())
-		})
+		//By("deleting turbulence", func() {
+		//err := boshClient.DeleteDeployment(turbulenceManifest.Name)
+		//Expect(err).NotTo(HaveOccurred())
+		//})
 	})
 
 	It("resolves long running DNS queries utilizing the consul recursor_timeout property", func() {

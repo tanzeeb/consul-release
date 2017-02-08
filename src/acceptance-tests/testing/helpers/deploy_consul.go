@@ -48,10 +48,10 @@ func deployConsul(deploymentPrefix string, count int, client bosh.Client, config
 	}
 
 	manifestConfig := consul.ConfigV2{
-		DirectorUUID:   info.UUID,
-		Name:           fmt.Sprintf("consul-%s-%s", deploymentPrefix, guid),
-		TurbulenceHost: config.TurbulenceHost,
-		WindowsClients: config.WindowsClients,
+		DirectorUUID: info.UUID,
+		Name:         fmt.Sprintf("consul-%s-%s", deploymentPrefix, guid),
+		TurbulenceDeploymentName: config.TurbulenceDeploymentName,
+		WindowsClients:           config.WindowsClients,
 	}
 
 	var iaasConfig iaas.Config

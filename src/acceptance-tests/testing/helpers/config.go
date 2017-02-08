@@ -9,13 +9,13 @@ import (
 )
 
 type Config struct {
-	BOSH                  ConfigBOSH     `json:"bosh"`
-	AWS                   ConfigAWS      `json:"aws"`
-	Registry              ConfigRegistry `json:"registry"`
-	ParallelNodes         int            `json:"parallel_nodes"`
-	TurbulenceReleaseName string
-	TurbulenceHost        string
-	WindowsClients        bool `json:"windows_clients"`
+	BOSH                     ConfigBOSH     `json:"bosh"`
+	AWS                      ConfigAWS      `json:"aws"`
+	Registry                 ConfigRegistry `json:"registry"`
+	ParallelNodes            int            `json:"parallel_nodes"`
+	TurbulenceReleaseName    string
+	TurbulenceDeploymentName string
+	WindowsClients           bool `json:"windows_clients"`
 }
 
 type ConfigBOSH struct {
